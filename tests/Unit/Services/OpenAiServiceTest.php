@@ -8,8 +8,6 @@ use App\Exceptions\Actor\ActorFirstNameMissing;
 use App\Exceptions\Actor\ActorLastNameMissing;
 use App\Exceptions\OpenAI\InvalidOpenAiResponseException;
 use App\Services\OpenAi\OpenAiService;
-use Illuminate\Support\Facades\Config;
-use Mockery;
 use OpenAI\Laravel\Facades\OpenAI;
 use OpenAI\Responses\Responses\CreateResponse;
 use Tests\TestCase;
@@ -24,9 +22,31 @@ class OpenAiServiceTest extends TestCase
         $this->service = new OpenAiService();
     }
 
+    protected function mockOpenAIResponse(string $text): void
+    {
+        OpenAI::fake([
+            CreateResponse::fake([
+                'output' => [
+                    [
+                        'id' => 'msg_test_123',
+                        'type' => 'message',
+                        'role' => 'assistant',
+                        'status' => 'completed',
+                        'content' => [
+                            [
+                                'type' => 'output_text',
+                                'text' => $text,
+                                'annotations' => [],
+                            ],
+                        ],
+                    ],
+                ],
+            ]),
+        ]);
+    }
+
     public function test_successfully_extracts_actor_data_from_valid_response(): void
     {
-        // Arrange
         $description = 'John Doe, 25 years old, 180cm, 75kg, male, lives in New York';
         $mockResponse = [
             'first_name' => 'John',
@@ -38,17 +58,10 @@ class OpenAiServiceTest extends TestCase
             'age' => 25,
         ];
 
-        $responseMock = Mockery::mock('overload:' . CreateResponse::class);
-        $responseMock->outputText = json_encode($mockResponse);
+        $this->mockOpenAIResponse(json_encode($mockResponse));
 
-        OpenAI::shouldReceive('responses->create')
-            ->once()
-            ->andReturn($responseMock);
-
-        // Act
         $result = $this->service->getActorData($description);
 
-        // Assert
         $this->assertInstanceOf(ActorData::class, $result);
         $this->assertEquals('John', $result->firstName);
         $this->assertEquals('Doe', $result->lastName);
@@ -62,24 +75,15 @@ class OpenAiServiceTest extends TestCase
 
     public function test_throws_exception_when_openai_returns_invalid_json(): void
     {
-        // Arrange
         $description = 'Invalid description';
+        $this->mockOpenAIResponse('This is not a valid JSON');
 
-        $responseMock = Mockery::mock(CreateResponse::class);
-        $responseMock->outputText = 'This is not a valid JSON';
-
-        OpenAI::shouldReceive('responses->create')
-            ->once()
-            ->andReturn($responseMock);
-
-        // Assert & Act
         $this->expectException(InvalidOpenAiResponseException::class);
         $this->service->getActorData($description);
     }
 
     public function test_throws_exception_when_first_name_is_missing(): void
     {
-        // Arrange
         $description = 'Test description';
         $mockResponse = [
             'first_name' => null,
@@ -91,21 +95,14 @@ class OpenAiServiceTest extends TestCase
             'age' => 25,
         ];
 
-        $responseMock = Mockery::mock(CreateResponse::class);
-        $responseMock->outputText = json_encode($mockResponse);
+        $this->mockOpenAIResponse(json_encode($mockResponse));
 
-        OpenAI::shouldReceive('responses->create')
-            ->once()
-            ->andReturn($responseMock);
-
-        // Assert & Act
         $this->expectException(ActorFirstNameMissing::class);
         $this->service->getActorData($description);
     }
 
     public function test_throws_exception_when_last_name_is_missing(): void
     {
-        // Arrange
         $description = 'Test description';
         $mockResponse = [
             'first_name' => 'John',
@@ -117,21 +114,14 @@ class OpenAiServiceTest extends TestCase
             'age' => 25,
         ];
 
-        $responseMock = Mockery::mock(CreateResponse::class);
-        $responseMock->outputText = json_encode($mockResponse);
+        $this->mockOpenAIResponse(json_encode($mockResponse));
 
-        OpenAI::shouldReceive('responses->create')
-            ->once()
-            ->andReturn($responseMock);
-
-        // Assert & Act
         $this->expectException(ActorLastNameMissing::class);
         $this->service->getActorData($description);
     }
 
     public function test_throws_exception_when_address_is_missing(): void
     {
-        // Arrange
         $description = 'Test description';
         $mockResponse = [
             'first_name' => 'John',
@@ -143,21 +133,14 @@ class OpenAiServiceTest extends TestCase
             'age' => 25,
         ];
 
-        $responseMock = Mockery::mock(CreateResponse::class);
-        $responseMock->outputText = json_encode($mockResponse);
+        $this->mockOpenAIResponse(json_encode($mockResponse));
 
-        OpenAI::shouldReceive('responses->create')
-            ->once()
-            ->andReturn($responseMock);
-
-        // Assert & Act
         $this->expectException(ActorAddressMissing::class);
         $this->service->getActorData($description);
     }
 
     public function test_handles_empty_first_name_string(): void
     {
-        // Arrange
         $description = 'Test description';
         $mockResponse = [
             'first_name' => '',
@@ -169,21 +152,14 @@ class OpenAiServiceTest extends TestCase
             'age' => 25,
         ];
 
-        $responseMock = Mockery::mock(CreateResponse::class);
-        $responseMock->outputText = json_encode($mockResponse);
+        $this->mockOpenAIResponse(json_encode($mockResponse));
 
-        OpenAI::shouldReceive('responses->create')
-            ->once()
-            ->andReturn($responseMock);
-
-        // Assert & Act
         $this->expectException(ActorFirstNameMissing::class);
         $this->service->getActorData($description);
     }
 
     public function test_extracts_data_with_optional_fields_as_null(): void
     {
-        // Arrange
         $description = 'Minimal actor info';
         $mockResponse = [
             'first_name' => 'Jane',
@@ -195,17 +171,10 @@ class OpenAiServiceTest extends TestCase
             'age' => null,
         ];
 
-        $responseMock = Mockery::mock(CreateResponse::class);
-        $responseMock->outputText = json_encode($mockResponse);
+        $this->mockOpenAIResponse(json_encode($mockResponse));
 
-        OpenAI::shouldReceive('responses->create')
-            ->once()
-            ->andReturn($responseMock);
-
-        // Act
         $result = $this->service->getActorData($description);
 
-        // Assert
         $this->assertInstanceOf(ActorData::class, $result);
         $this->assertEquals('Jane', $result->firstName);
         $this->assertEquals('Smith', $result->lastName);

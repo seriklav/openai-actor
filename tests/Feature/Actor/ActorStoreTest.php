@@ -17,21 +17,18 @@ class ActorStoreTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-    }
-
     public function test_successfully_creates_actor_with_valid_data(): void
     {
-        // Arrange
-        $email = 'actor@example.com';
-        $description = 'John Doe, 25 years old, male, 180cm, 75kg, lives in New York';
+        $email = fake()->email();
+        $firstName = fake()->firstName();
+        $lastName = fake()->lastName();
+        $address = fake()->city();
+        $description = "{$firstName} {$lastName}, 25 years old, male, 180cm, 75kg, lives in {$address}";
 
         $actorData = new ActorData(
-            firstName: 'John',
-            lastName: 'Doe',
-            address: 'New York',
+            firstName: $firstName,
+            lastName: $lastName,
+            address: $address,
             gender: 'male',
             description: $description,
             height: 180,
@@ -45,19 +42,17 @@ class ActorStoreTest extends TestCase
                 ->andReturn($actorData);
         });
 
-        // Act
         $response = $this->post(route('actors.store'), [
             'email' => $email,
             'description' => $description,
         ]);
 
-        // Assert
         $response->assertRedirect(route('actors.index'));
         $this->assertDatabaseHas('users', ['email' => $email]);
         $this->assertDatabaseHas('actors', [
-            'first_name' => 'John',
-            'last_name' => 'Doe',
-            'address' => 'New York',
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'address' => $address,
             'gender' => 'male',
             'description' => $description,
             'height' => 180,
@@ -68,14 +63,16 @@ class ActorStoreTest extends TestCase
 
     public function test_creates_new_user_if_email_does_not_exist(): void
     {
-        // Arrange
-        $email = 'newuser@example.com';
-        $description = 'Valid actor description';
+        $email = fake()->unique()->email();
+        $firstName = fake()->firstName();
+        $lastName = fake()->lastName();
+        $address = fake()->city();
+        $description = "{$firstName} {$lastName} from {$address}";
 
         $actorData = new ActorData(
-            firstName: 'Jane',
-            lastName: 'Smith',
-            address: 'London',
+            firstName: $firstName,
+            lastName: $lastName,
+            address: $address,
             description: $description
         );
 
@@ -83,16 +80,13 @@ class ActorStoreTest extends TestCase
             $mock->shouldReceive('getActorData')->andReturn($actorData);
         });
 
-        // Assert pre-condition
         $this->assertDatabaseMissing('users', ['email' => $email]);
 
-        // Act
         $response = $this->post(route('actors.store'), [
             'email' => $email,
             'description' => $description,
         ]);
 
-        // Assert
         $response->assertRedirect(route('actors.index'));
         $this->assertDatabaseHas('users', ['email' => $email]);
         $this->assertEquals(1, User::where('email', $email)->count());
@@ -100,14 +94,16 @@ class ActorStoreTest extends TestCase
 
     public function test_uses_existing_user_if_email_already_exists(): void
     {
-        // Arrange
-        $user = User::factory()->create(['email' => 'existing@example.com']);
-        $description = 'Valid actor description';
+        $user = User::factory()->create();
+        $firstName = fake()->firstName();
+        $lastName = fake()->lastName();
+        $address = fake()->city();
+        $description = "{$firstName} {$lastName} from {$address}";
 
         $actorData = new ActorData(
-            firstName: 'Bob',
-            lastName: 'Johnson',
-            address: 'Paris',
+            firstName: $firstName,
+            lastName: $lastName,
+            address: $address,
             description: $description
         );
 
@@ -115,29 +111,29 @@ class ActorStoreTest extends TestCase
             $mock->shouldReceive('getActorData')->andReturn($actorData);
         });
 
-        // Act
         $response = $this->post(route('actors.store'), [
             'email' => $user->email,
             'description' => $description,
         ]);
 
-        // Assert
         $response->assertRedirect(route('actors.index'));
-        $this->assertEquals(1, User::where('email', $user->email)->count());
-        $actor = Actor::where('user_id', $user->id)->first();
+        $this->assertEquals(1, User::query()->where('email', $user->email)->count());
+        $actor = Actor::query()->where('user_id', $user->id)->first();
         $this->assertNotNull($actor);
     }
 
     public function test_logs_in_user_after_creating_actor(): void
     {
-        // Arrange
-        $email = 'login@example.com';
-        $description = 'Valid description';
+        $email = fake()->email();
+        $firstName = fake()->firstName();
+        $lastName = fake()->lastName();
+        $address = fake()->city();
+        $description = "{$firstName} {$lastName} from {$address}";
 
         $actorData = new ActorData(
-            firstName: 'Test',
-            lastName: 'User',
-            address: 'City',
+            firstName: $firstName,
+            lastName: $lastName,
+            address: $address,
             description: $description
         );
 
@@ -145,16 +141,13 @@ class ActorStoreTest extends TestCase
             $mock->shouldReceive('getActorData')->andReturn($actorData);
         });
 
-        // Assert pre-condition
         $this->assertFalse(auth()->check());
 
-        // Act
         $response = $this->post(route('actors.store'), [
             'email' => $email,
             'description' => $description,
         ]);
 
-        // Assert
         $response->assertRedirect(route('actors.index'));
         $this->assertTrue(auth()->check());
         $this->assertEquals($email, auth()->user()->email);
@@ -162,110 +155,97 @@ class ActorStoreTest extends TestCase
 
     public function test_returns_validation_error_when_email_is_missing(): void
     {
-        // Act
         $response = $this->post(route('actors.store'), [
             'description' => 'Some description',
         ]);
 
-        // Assert
         $response->assertSessionHasErrors(['email']);
     }
 
     public function test_returns_validation_error_when_description_is_missing(): void
     {
-        // Act
         $response = $this->post(route('actors.store'), [
-            'email' => 'test@example.com',
+            'email' => fake()->email(),
         ]);
 
-        // Assert
         $response->assertSessionHasErrors(['description']);
     }
 
     public function test_returns_validation_error_when_email_format_is_invalid(): void
     {
-        // Act
         $response = $this->post(route('actors.store'), [
             'email' => 'invalid-email',
-            'description' => 'Some description',
+            'description' => fake()->sentence(),
         ]);
 
-        // Assert
         $response->assertSessionHasErrors(['email']);
     }
 
     public function test_returns_validation_error_when_openai_fails_with_missing_first_name(): void
     {
-        // Arrange
         $this->mock(OpenAiService::class, function ($mock) {
             $mock->shouldReceive('getActorData')
                 ->andThrow(new ActorFirstNameMissing());
         });
 
-        // Act
         $response = $this->post(route('actors.store'), [
-            'email' => 'test@example.com',
-            'description' => 'Invalid description',
+            'email' => fake()->email(),
+            'description' => fake()->sentence(),
         ]);
 
-        // Assert
         $response->assertSessionHasErrors(['description']);
     }
 
     public function test_returns_validation_error_when_openai_fails_with_missing_last_name(): void
     {
-        // Arrange
         $this->mock(OpenAiService::class, function ($mock) {
             $mock->shouldReceive('getActorData')
                 ->andThrow(new ActorLastNameMissing());
         });
 
-        // Act
         $response = $this->post(route('actors.store'), [
-            'email' => 'test@example.com',
-            'description' => 'Invalid description',
+            'email' => fake()->email(),
+            'description' => fake()->sentence(),
         ]);
 
-        // Assert
         $response->assertSessionHasErrors(['description']);
     }
 
     public function test_returns_validation_error_when_openai_fails_with_missing_address(): void
     {
-        // Arrange
         $this->mock(OpenAiService::class, function ($mock) {
             $mock->shouldReceive('getActorData')
                 ->andThrow(new ActorAddressMissing());
         });
 
-        // Act
         $response = $this->post(route('actors.store'), [
-            'email' => 'test@example.com',
-            'description' => 'Invalid description',
+            'email' => fake()->email(),
+            'description' => fake()->sentence(),
         ]);
 
-        // Assert
         $response->assertSessionHasErrors(['description']);
     }
 
     public function test_does_not_create_duplicate_actors_with_same_data(): void
     {
-        // Arrange
         $user = User::factory()->create();
-        $description = 'Unique actor description';
+        $firstName = fake()->firstName();
+        $lastName = fake()->lastName();
+        $address = fake()->city();
+        $description = "{$firstName} {$lastName} from {$address}";
 
         Actor::factory()->create([
             'user_id' => $user->id,
             'description' => $description,
-            'first_name' => 'John',
-            'last_name' => 'Doe',
-            'address' => 'New York',
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'address' => $address,
         ]);
 
         $actorData = new ActorData(
-            firstName: 'John',
-            lastName: 'Doe',
-            address: 'New York',
+            firstName: $firstName,
+            lastName: $lastName,
+            address: $address,
             description: $description
         );
 
@@ -273,28 +253,28 @@ class ActorStoreTest extends TestCase
             $mock->shouldReceive('getActorData')->andReturn($actorData);
         });
 
-        $initialCount = Actor::count();
+        $initialCount = Actor::query()->count();
 
-        // Act
         $response = $this->post(route('actors.store'), [
             'email' => $user->email,
             'description' => $description,
         ]);
 
-        // Assert
         $response->assertSessionHasErrors();
-        $this->assertEquals($initialCount, Actor::count());
+        $this->assertEquals($initialCount, Actor::query()->count());
     }
 
     public function test_handles_long_description_text(): void
     {
-        // Arrange
-        $description = str_repeat('This is a very long actor description. ', 50);
+        $firstName = fake()->firstName();
+        $lastName = fake()->lastName();
+        $address = fake()->city();
+        $description = str_repeat("{$firstName} {$lastName} actor description. ", 50);
 
         $actorData = new ActorData(
-            firstName: 'Long',
-            lastName: 'Description',
-            address: 'City',
+            firstName: $firstName,
+            lastName: $lastName,
+            address: $address,
             description: $description
         );
 
@@ -302,13 +282,11 @@ class ActorStoreTest extends TestCase
             $mock->shouldReceive('getActorData')->andReturn($actorData);
         });
 
-        // Act
         $response = $this->post(route('actors.store'), [
-            'email' => 'long@example.com',
+            'email' => fake()->email(),
             'description' => $description,
         ]);
 
-        // Assert
         $response->assertRedirect(route('actors.index'));
         $this->assertDatabaseHas('actors', [
             'description' => $description,
@@ -317,13 +295,15 @@ class ActorStoreTest extends TestCase
 
     public function test_handles_special_characters_in_description(): void
     {
-        // Arrange
-        $description = "John O'Brien, 30 years old, lives in São Paulo, speaks 日本語";
+        $firstName = fake()->firstName();
+        $lastName = "O'Brien";
+        $address = "São Paulo";
+        $description = "{$firstName} {$lastName}, 30 years old, lives in {$address}, speaks 日本語";
 
         $actorData = new ActorData(
-            firstName: "John",
-            lastName: "O'Brien",
-            address: "São Paulo",
+            firstName: $firstName,
+            lastName: $lastName,
+            address: $address,
             description: $description
         );
 
@@ -331,48 +311,47 @@ class ActorStoreTest extends TestCase
             $mock->shouldReceive('getActorData')->andReturn($actorData);
         });
 
-        // Act
         $response = $this->post(route('actors.store'), [
-            'email' => 'special@example.com',
+            'email' => fake()->email(),
             'description' => $description,
         ]);
 
-        // Assert
         $response->assertRedirect(route('actors.index'));
         $this->assertDatabaseHas('actors', [
-            'last_name' => "O'Brien",
+            'last_name' => $lastName,
+            'address' => $address,
         ]);
     }
 
     public function test_accepts_optional_actor_fields(): void
     {
-        // Arrange
-        $description = 'Minimal actor data';
+        $firstName = fake()->firstName();
+        $lastName = fake()->lastName();
+        $address = fake()->city();
+        $description = "{$firstName} {$lastName} from {$address}";
 
         $actorData = new ActorData(
-            firstName: 'Minimal',
-            lastName: 'Data',
-            address: 'Unknown',
+            firstName: $firstName,
+            lastName: $lastName,
+            address: $address,
+            gender: null,
             description: $description,
             height: null,
             weight: null,
-            age: null,
-            gender: null
+            age: null
         );
 
         $this->mock(OpenAiService::class, function ($mock) use ($actorData) {
             $mock->shouldReceive('getActorData')->andReturn($actorData);
         });
 
-        // Act
         $response = $this->post(route('actors.store'), [
-            'email' => 'minimal@example.com',
+            'email' => fake()->email(),
             'description' => $description,
         ]);
 
-        // Assert
         $response->assertRedirect(route('actors.index'));
-        $actor = Actor::where('first_name', 'Minimal')->first();
+        $actor = Actor::query()->where('first_name', $firstName)->first();
         $this->assertNotNull($actor);
         $this->assertNull($actor->height);
         $this->assertNull($actor->weight);

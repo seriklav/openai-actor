@@ -24,6 +24,10 @@ class ActorStoreUniqueValidator extends AbstractValidator
 		$email = request()->input('email');
 		$description = request()->input('description');
 
+        if (empty($email) || empty($description)) {
+            return;
+        }
+
         $user = $this->userService->getOrCreate(
             new UserAuthData(email: $email)
         );

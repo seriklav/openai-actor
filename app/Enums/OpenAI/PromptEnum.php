@@ -20,7 +20,7 @@ enum PromptEnum: string
     private function extractActorDataPrompt(string $description): string
     {
         return <<<PROMPT
-You are an information extractor. Understand any language (English/Ukrainian/Russian, etc.).
+You are an information extractor. Understand any language (English/Ukrainian, etc.).
 Return ONLY a single valid JSON object with these keys:
 first_name, last_name, address, height, weight, gender, age.
 

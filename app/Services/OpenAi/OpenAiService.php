@@ -25,7 +25,15 @@ class OpenAiService
             'input' => $prompt,
         ]);
 
-        $outputText = $response->outputText;
+        $outputText = null;
+        if (isset($response->output[0])) {
+            $firstOutput = $response->output[0];
+            if ($firstOutput->type === 'message' && isset($firstOutput->content[0])) {
+                $outputText = $firstOutput->content[0]->text;
+            }
+        }
+
+        $outputText = $outputText ?? $response->outputText ?? $response->choices[0]['text'] ?? null;
 
         $data = json_decode((string)$outputText, true);
 

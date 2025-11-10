@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Actor\GenderEnum;
+use Database\Factories\ActorFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,10 +22,14 @@ use Illuminate\Support\Carbon;
  * @property int $age
  * @property Carbon $created_at
  * @property Carbon $updated_at
+ *
+ * @property User $user
  */
 class Actor extends Model
 {
+    /** @use HasFactory<ActorFactory> */
     use HasFactory;
+
     protected $fillable = [
         'user_id',
         'description',

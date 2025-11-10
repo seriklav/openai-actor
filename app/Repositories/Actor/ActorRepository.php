@@ -37,7 +37,7 @@ class ActorRepository
             ->latest();
 
         return $query->paginate(
-            perPage: $data->perPage,
+            perPage: $data->perPage ?? 15,
             page: $data->page ?? null,
         );
     }

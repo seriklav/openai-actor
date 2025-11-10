@@ -23,66 +23,69 @@ class ActorRepositoryTest extends TestCase
 
     public function test_creates_new_actor_with_valid_data(): void
     {
-        // Arrange
         $user = User::factory()->create();
+        $firstName = fake()->firstName();
+        $lastName = fake()->lastName();
+        $address = fake()->city();
+        $description = fake()->sentence();
+
         $actorData = new ActorData(
-            firstName: 'John',
-            lastName: 'Doe',
-            address: 'New York',
+            firstName: $firstName,
+            lastName: $lastName,
+            address: $address,
             gender: 'male',
-            description: 'Test description',
+            description: $description,
             height: 180,
             weight: 75,
             age: 25
         );
 
-        // Act
         $actor = $this->repository->create($user, $actorData);
 
-        // Assert
         $this->assertInstanceOf(Actor::class, $actor);
         $this->assertEquals($user->id, $actor->user_id);
-        $this->assertEquals('John', $actor->first_name);
-        $this->assertEquals('Doe', $actor->last_name);
-        $this->assertEquals('New York', $actor->address);
+        $this->assertEquals($firstName, $actor->first_name);
+        $this->assertEquals($lastName, $actor->last_name);
+        $this->assertEquals($address, $actor->address);
         $this->assertEquals('male', $actor->gender->value);
-        $this->assertEquals('Test description', $actor->description);
+        $this->assertEquals($description, $actor->description);
         $this->assertEquals(180, $actor->height);
         $this->assertEquals(75, $actor->weight);
         $this->assertEquals(25, $actor->age);
         $this->assertDatabaseHas('actors', [
             'user_id' => $user->id,
-            'first_name' => 'John',
+            'first_name' => $firstName,
         ]);
     }
 
     public function test_first_or_creates_actor_when_duplicate_exists(): void
     {
-        // Arrange
         $user = User::factory()->create();
+        $firstName = fake()->firstName();
+        $lastName = fake()->lastName();
+        $address = fake()->city();
+        $description = fake()->sentence();
+
         $actorData = new ActorData(
-            firstName: 'Jane',
-            lastName: 'Smith',
-            address: 'London',
+            firstName: $firstName,
+            lastName: $lastName,
+            address: $address,
             gender: 'female',
-            description: 'Duplicate test',
+            description: $description,
             height: 165,
             weight: 60,
             age: 30
         );
 
-        // Act
         $firstActor = $this->repository->create($user, $actorData);
         $secondActor = $this->repository->create($user, $actorData);
 
-        // Assert
         $this->assertEquals($firstActor->id, $secondActor->id);
         $this->assertEquals(1, Actor::count());
     }
 
     public function test_checks_if_actors_exist_by_data(): void
     {
-        // Arrange
         $user = User::factory()->create();
         Actor::factory()->create([
             'user_id' => $user->id,
@@ -101,14 +104,12 @@ class ActorRepositoryTest extends TestCase
             description: 'non-existent description'
         );
 
-        // Act & Assert
         $this->assertTrue($this->repository->hasActorsByData($existingData));
         $this->assertFalse($this->repository->hasActorsByData($nonExistingData));
     }
 
     public function test_gets_actors_by_user_id(): void
     {
-        // Arrange
         $user1 = User::factory()->create();
         $user2 = User::factory()->create();
 
@@ -117,10 +118,8 @@ class ActorRepositoryTest extends TestCase
 
         $data = new ActorData(userId: $user1->id, perPage: 10);
 
-        // Act
         $result = $this->repository->getActorsByData($data);
 
-        // Assert
         $this->assertCount(3, $result->items());
         foreach ($result->items() as $actor) {
             $this->assertEquals($user1->id, $actor->user_id);
@@ -129,67 +128,63 @@ class ActorRepositoryTest extends TestCase
 
     public function test_filters_actors_by_first_name(): void
     {
-        // Arrange
         $user = User::factory()->create();
+        $searchName = fake()->firstName();
+
         Actor::factory()->create([
             'user_id' => $user->id,
-            'first_name' => 'Alexander',
+            'first_name' => $searchName . 'ander',
         ]);
         Actor::factory()->create([
             'user_id' => $user->id,
-            'first_name' => 'Alexandra',
+            'first_name' => $searchName . 'andra',
         ]);
         Actor::factory()->create([
             'user_id' => $user->id,
-            'first_name' => 'John',
+            'first_name' => fake()->firstName(),
         ]);
 
-        $data = new ActorData(firstName: 'Alex', perPage: 10);
+        $data = new ActorData(firstName: $searchName, perPage: 10);
 
-        // Act
         $result = $this->repository->getActorsByData($data);
 
-        // Assert
         $this->assertCount(2, $result->items());
     }
 
     public function test_filters_actors_by_last_name(): void
     {
-        // Arrange
         $user = User::factory()->create();
-        Actor::factory()->create(['user_id' => $user->id, 'last_name' => 'Smith']);
-        Actor::factory()->create(['user_id' => $user->id, 'last_name' => 'Smithson']);
-        Actor::factory()->create(['user_id' => $user->id, 'last_name' => 'Johnson']);
+        $searchName = fake()->lastName();
 
-        $data = new ActorData(lastName: 'Smith', perPage: 10);
+        Actor::factory()->create(['user_id' => $user->id, 'last_name' => $searchName]);
+        Actor::factory()->create(['user_id' => $user->id, 'last_name' => $searchName . 'son']);
+        Actor::factory()->create(['user_id' => $user->id, 'last_name' => fake()->lastName()]);
 
-        // Act
+        $data = new ActorData(lastName: $searchName, perPage: 10);
+
         $result = $this->repository->getActorsByData($data);
 
-        // Assert
         $this->assertCount(2, $result->items());
     }
 
     public function test_filters_actors_by_address(): void
     {
-        // Arrange
         $user = User::factory()->create();
-        Actor::factory()->create(['user_id' => $user->id, 'address' => 'New York']);
-        Actor::factory()->create(['user_id' => $user->id, 'address' => 'New Jersey']);
-        Actor::factory()->create(['user_id' => $user->id, 'address' => 'Los Angeles']);
+        $searchAddress = fake()->country();
 
-        $data = new ActorData(address: 'New', perPage: 10);
+        Actor::factory()->create(['user_id' => $user->id, 'address' => $searchAddress . ' York']);
+        Actor::factory()->create(['user_id' => $user->id, 'address' => $searchAddress . ' Jersey']);
+        Actor::factory()->create(['user_id' => $user->id, 'address' => fake()->city()]);
 
-        // Act
+        $data = new ActorData(address: $searchAddress, perPage: 10);
+
         $result = $this->repository->getActorsByData($data);
 
-        // Assert
         $this->assertCount(2, $result->items());
     }
 
     public function test_filters_actors_by_gender(): void
     {
-        // Arrange
         $user = User::factory()->create();
         Actor::factory()->create(['user_id' => $user->id, 'gender' => 'male']);
         Actor::factory()->create(['user_id' => $user->id, 'gender' => 'male']);
@@ -197,16 +192,13 @@ class ActorRepositoryTest extends TestCase
 
         $data = new ActorData(gender: 'male', perPage: 10);
 
-        // Act
         $result = $this->repository->getActorsByData($data);
 
-        // Assert
         $this->assertCount(2, $result->items());
     }
 
     public function test_filters_actors_by_height(): void
     {
-        // Arrange
         $user = User::factory()->create();
         Actor::factory()->create(['user_id' => $user->id, 'height' => 180]);
         Actor::factory()->create(['user_id' => $user->id, 'height' => 180]);
@@ -214,16 +206,13 @@ class ActorRepositoryTest extends TestCase
 
         $data = new ActorData(height: 180, perPage: 10);
 
-        // Act
         $result = $this->repository->getActorsByData($data);
 
-        // Assert
         $this->assertCount(2, $result->items());
     }
 
     public function test_filters_actors_by_weight(): void
     {
-        // Arrange
         $user = User::factory()->create();
         Actor::factory()->create(['user_id' => $user->id, 'weight' => 75]);
         Actor::factory()->create(['user_id' => $user->id, 'weight' => 80]);
@@ -231,16 +220,13 @@ class ActorRepositoryTest extends TestCase
 
         $data = new ActorData(weight: 75, perPage: 10);
 
-        // Act
         $result = $this->repository->getActorsByData($data);
 
-        // Assert
         $this->assertCount(2, $result->items());
     }
 
     public function test_filters_actors_by_age(): void
     {
-        // Arrange
         $user = User::factory()->create();
         Actor::factory()->create(['user_id' => $user->id, 'age' => 25]);
         Actor::factory()->create(['user_id' => $user->id, 'age' => 30]);
@@ -248,16 +234,13 @@ class ActorRepositoryTest extends TestCase
 
         $data = new ActorData(age: 25, perPage: 10);
 
-        // Act
         $result = $this->repository->getActorsByData($data);
 
-        // Assert
         $this->assertCount(2, $result->items());
     }
 
     public function test_filters_actors_by_description(): void
     {
-        // Arrange
         $user = User::factory()->create();
         Actor::factory()->create(['user_id' => $user->id, 'description' => 'Experienced actor']);
         Actor::factory()->create(['user_id' => $user->id, 'description' => 'Experienced director']);
@@ -265,27 +248,22 @@ class ActorRepositoryTest extends TestCase
 
         $data = new ActorData(description: 'Experienced', perPage: 10);
 
-        // Act
         $result = $this->repository->getActorsByData($data);
 
-        // Assert
         $this->assertCount(2, $result->items());
     }
 
     public function test_paginates_actors_correctly(): void
     {
-        // Arrange
         $user = User::factory()->create();
         Actor::factory()->count(25)->create(['user_id' => $user->id]);
 
         $dataPage1 = new ActorData(userId: $user->id, perPage: 10, page: 1);
         $dataPage2 = new ActorData(userId: $user->id, perPage: 10, page: 2);
 
-        // Act
         $resultPage1 = $this->repository->getActorsByData($dataPage1);
         $resultPage2 = $this->repository->getActorsByData($dataPage2);
 
-        // Assert
         $this->assertCount(10, $resultPage1->items());
         $this->assertCount(10, $resultPage2->items());
         $this->assertEquals(25, $resultPage1->total());
@@ -294,7 +272,6 @@ class ActorRepositoryTest extends TestCase
 
     public function test_orders_actors_by_latest(): void
     {
-        // Arrange
         $user = User::factory()->create();
         $oldActor = Actor::factory()->create([
             'user_id' => $user->id,
@@ -307,51 +284,48 @@ class ActorRepositoryTest extends TestCase
 
         $data = new ActorData(userId: $user->id, perPage: 10);
 
-        // Act
         $result = $this->repository->getActorsByData($data);
 
-        // Assert
         $this->assertEquals($newActor->id, $result->items()[0]->id);
         $this->assertEquals($oldActor->id, $result->items()[1]->id);
     }
 
     public function test_combines_multiple_filters(): void
     {
-        // Arrange
         $user = User::factory()->create();
+        $firstName = fake()->firstName();
+
         Actor::factory()->create([
             'user_id' => $user->id,
-            'first_name' => 'John',
+            'first_name' => $firstName,
             'gender' => 'male',
             'age' => 25,
         ]);
         Actor::factory()->create([
             'user_id' => $user->id,
-            'first_name' => 'John',
+            'first_name' => $firstName,
             'gender' => 'male',
             'age' => 30,
         ]);
         Actor::factory()->create([
             'user_id' => $user->id,
-            'first_name' => 'Jane',
+            'first_name' => fake()->firstName(),
             'gender' => 'female',
             'age' => 25,
         ]);
 
         $data = new ActorData(
             userId: $user->id,
-            firstName: 'John',
+            firstName: $firstName,
             gender: 'male',
             age: 25,
             perPage: 10
         );
 
-        // Act
         $result = $this->repository->getActorsByData($data);
 
-        // Assert
         $this->assertCount(1, $result->items());
-        $this->assertEquals('John', $result->items()[0]->first_name);
+        $this->assertEquals($firstName, $result->items()[0]->first_name);
         $this->assertEquals(25, $result->items()[0]->age);
     }
 }
