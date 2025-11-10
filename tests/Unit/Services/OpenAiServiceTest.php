@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services;
 
 use App\Data\Actor\ActorData;
+use App\Enums\Actor\GenderEnum;
 use App\Exceptions\Actor\ActorAddressMissing;
 use App\Exceptions\Actor\ActorFirstNameMissing;
 use App\Exceptions\Actor\ActorLastNameMissing;
@@ -47,14 +48,19 @@ class OpenAiServiceTest extends TestCase
 
     public function test_successfully_extracts_actor_data_from_valid_response(): void
     {
-        $description = 'John Doe, 25 years old, 180cm, 75kg, male, lives in New York';
+        $firstName = fake()->firstName();
+        $lastName = fake()->lastName();
+        $address = fake()->city();
+        $gender = GenderEnum::MALE->value;
+        $description = "$firstName, 25 years old, 180cm, 75kg, $gender, lives in $address";
+
         $mockResponse = [
-            'first_name' => 'John',
-            'last_name' => 'Doe',
-            'address' => 'New York',
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'address' => $address,
             'height' => 180,
             'weight' => 75,
-            'gender' => 'male',
+            'gender' => $gender,
             'age' => 25,
         ];
 
@@ -63,12 +69,12 @@ class OpenAiServiceTest extends TestCase
         $result = $this->service->getActorData($description);
 
         $this->assertInstanceOf(ActorData::class, $result);
-        $this->assertEquals('John', $result->firstName);
-        $this->assertEquals('Doe', $result->lastName);
-        $this->assertEquals('New York', $result->address);
+        $this->assertEquals($firstName, $result->firstName);
+        $this->assertEquals($lastName, $result->lastName);
+        $this->assertEquals($address, $result->address);
         $this->assertEquals(180, $result->height);
         $this->assertEquals(75, $result->weight);
-        $this->assertEquals('male', $result->gender);
+        $this->assertEquals($gender, $result->gender);
         $this->assertEquals(25, $result->age);
         $this->assertEquals($description, $result->description);
     }
@@ -84,14 +90,18 @@ class OpenAiServiceTest extends TestCase
 
     public function test_throws_exception_when_first_name_is_missing(): void
     {
+        $lastName = fake()->lastName();
+        $address = fake()->city();
+        $gender = GenderEnum::MALE->value;
         $description = 'Test description';
+
         $mockResponse = [
             'first_name' => null,
-            'last_name' => 'Doe',
-            'address' => 'New York',
+            'last_name' => $lastName,
+            'address' => $address,
             'height' => 180,
             'weight' => 75,
-            'gender' => 'male',
+            'gender' => $gender,
             'age' => 25,
         ];
 
@@ -103,14 +113,18 @@ class OpenAiServiceTest extends TestCase
 
     public function test_throws_exception_when_last_name_is_missing(): void
     {
+        $firstName = fake()->firstName();
+        $address = fake()->city();
+        $gender = GenderEnum::MALE->value;
         $description = 'Test description';
+
         $mockResponse = [
-            'first_name' => 'John',
+            'first_name' => $firstName,
             'last_name' => null,
-            'address' => 'New York',
+            'address' => $address,
             'height' => 180,
             'weight' => 75,
-            'gender' => 'male',
+            'gender' => $gender,
             'age' => 25,
         ];
 
@@ -122,14 +136,18 @@ class OpenAiServiceTest extends TestCase
 
     public function test_throws_exception_when_address_is_missing(): void
     {
+        $firstName = fake()->firstName();
+        $lastName = fake()->lastName();
+        $gender = GenderEnum::MALE->value;
         $description = 'Test description';
+
         $mockResponse = [
-            'first_name' => 'John',
-            'last_name' => 'Doe',
+            'first_name' => $firstName,
+            'last_name' => $lastName,
             'address' => null,
             'height' => 180,
             'weight' => 75,
-            'gender' => 'male',
+            'gender' => $gender,
             'age' => 25,
         ];
 
@@ -141,14 +159,18 @@ class OpenAiServiceTest extends TestCase
 
     public function test_handles_empty_first_name_string(): void
     {
+        $lastName = fake()->lastName();
+        $address = fake()->city();
+        $gender = GenderEnum::MALE->value;
         $description = 'Test description';
+
         $mockResponse = [
             'first_name' => '',
-            'last_name' => 'Doe',
-            'address' => 'New York',
+            'last_name' => $lastName,
+            'address' => $address,
             'height' => 180,
             'weight' => 75,
-            'gender' => 'male',
+            'gender' => $gender,
             'age' => 25,
         ];
 
@@ -160,11 +182,15 @@ class OpenAiServiceTest extends TestCase
 
     public function test_extracts_data_with_optional_fields_as_null(): void
     {
+        $firstName = fake()->firstName();
+        $lastName = fake()->lastName();
+        $address = fake()->city();
         $description = 'Minimal actor info';
+
         $mockResponse = [
-            'first_name' => 'Jane',
-            'last_name' => 'Smith',
-            'address' => 'London',
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'address' => $address,
             'height' => null,
             'weight' => null,
             'gender' => null,
@@ -176,9 +202,9 @@ class OpenAiServiceTest extends TestCase
         $result = $this->service->getActorData($description);
 
         $this->assertInstanceOf(ActorData::class, $result);
-        $this->assertEquals('Jane', $result->firstName);
-        $this->assertEquals('Smith', $result->lastName);
-        $this->assertEquals('London', $result->address);
+        $this->assertEquals($firstName, $result->firstName);
+        $this->assertEquals($lastName, $result->lastName);
+        $this->assertEquals($address, $result->address);
         $this->assertNull($result->height);
         $this->assertNull($result->weight);
         $this->assertNull($result->gender);

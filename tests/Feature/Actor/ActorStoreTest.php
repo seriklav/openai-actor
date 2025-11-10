@@ -3,6 +3,7 @@
 namespace Tests\Feature\Actor;
 
 use App\Data\Actor\ActorData;
+use App\Enums\Actor\GenderEnum;
 use App\Exceptions\Actor\ActorAddressMissing;
 use App\Exceptions\Actor\ActorFirstNameMissing;
 use App\Exceptions\Actor\ActorLastNameMissing;
@@ -23,13 +24,13 @@ class ActorStoreTest extends TestCase
         $firstName = fake()->firstName();
         $lastName = fake()->lastName();
         $address = fake()->city();
-        $description = "{$firstName} {$lastName}, 25 years old, male, 180cm, 75kg, lives in {$address}";
+        $description = "$firstName $lastName, 25 years old, male, 180cm, 75kg, lives in $address";
 
         $actorData = new ActorData(
             firstName: $firstName,
             lastName: $lastName,
             address: $address,
-            gender: 'male',
+            gender: GenderEnum::MALE->value,
             description: $description,
             height: 180,
             weight: 75,
@@ -53,7 +54,7 @@ class ActorStoreTest extends TestCase
             'first_name' => $firstName,
             'last_name' => $lastName,
             'address' => $address,
-            'gender' => 'male',
+            'gender' => GenderEnum::MALE->value,
             'description' => $description,
             'height' => 180,
             'weight' => 75,
@@ -67,7 +68,7 @@ class ActorStoreTest extends TestCase
         $firstName = fake()->firstName();
         $lastName = fake()->lastName();
         $address = fake()->city();
-        $description = "{$firstName} {$lastName} from {$address}";
+        $description = "$firstName $lastName from $address";
 
         $actorData = new ActorData(
             firstName: $firstName,
@@ -89,7 +90,7 @@ class ActorStoreTest extends TestCase
 
         $response->assertRedirect(route('actors.index'));
         $this->assertDatabaseHas('users', ['email' => $email]);
-        $this->assertEquals(1, User::where('email', $email)->count());
+        $this->assertEquals(1, User::query()->where('email', $email)->count());
     }
 
     public function test_uses_existing_user_if_email_already_exists(): void
@@ -98,7 +99,7 @@ class ActorStoreTest extends TestCase
         $firstName = fake()->firstName();
         $lastName = fake()->lastName();
         $address = fake()->city();
-        $description = "{$firstName} {$lastName} from {$address}";
+        $description = "$firstName $lastName from $address";
 
         $actorData = new ActorData(
             firstName: $firstName,
@@ -128,7 +129,7 @@ class ActorStoreTest extends TestCase
         $firstName = fake()->firstName();
         $lastName = fake()->lastName();
         $address = fake()->city();
-        $description = "{$firstName} {$lastName} from {$address}";
+        $description = "$firstName $lastName from $address";
 
         $actorData = new ActorData(
             firstName: $firstName,
@@ -232,7 +233,7 @@ class ActorStoreTest extends TestCase
         $firstName = fake()->firstName();
         $lastName = fake()->lastName();
         $address = fake()->city();
-        $description = "{$firstName} {$lastName} from {$address}";
+        $description = "$firstName $lastName from $address";
 
         Actor::factory()->create([
             'user_id' => $user->id,
@@ -269,7 +270,7 @@ class ActorStoreTest extends TestCase
         $firstName = fake()->firstName();
         $lastName = fake()->lastName();
         $address = fake()->city();
-        $description = str_repeat("{$firstName} {$lastName} actor description. ", 50);
+        $description = str_repeat("$firstName $lastName actor description. ", 50);
 
         $actorData = new ActorData(
             firstName: $firstName,
@@ -296,9 +297,9 @@ class ActorStoreTest extends TestCase
     public function test_handles_special_characters_in_description(): void
     {
         $firstName = fake()->firstName();
-        $lastName = "O'Brien";
-        $address = "São Paulo";
-        $description = "{$firstName} {$lastName}, 30 years old, lives in {$address}, speaks 日本語";
+        $lastName = fake()->lastName();
+        $address = fake()->city();
+        $description = "$firstName $lastName, 30 years old, lives in $address";
 
         $actorData = new ActorData(
             firstName: $firstName,
@@ -328,7 +329,7 @@ class ActorStoreTest extends TestCase
         $firstName = fake()->firstName();
         $lastName = fake()->lastName();
         $address = fake()->city();
-        $description = "{$firstName} {$lastName} from {$address}";
+        $description = "$firstName $lastName from $address";
 
         $actorData = new ActorData(
             firstName: $firstName,

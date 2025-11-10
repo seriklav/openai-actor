@@ -3,6 +3,7 @@
 namespace Tests\Unit\Enums;
 
 use App\Enums\Actor\GenderEnum;
+use BackedEnum;
 use Tests\TestCase;
 
 class GenderEnumTest extends TestCase
@@ -111,7 +112,7 @@ class GenderEnumTest extends TestCase
 
     public function test_enum_is_backed_by_string(): void
     {
-        $this->assertInstanceOf(\BackedEnum::class, GenderEnum::MALE);
+        $this->assertInstanceOf(BackedEnum::class, GenderEnum::MALE);
         $this->assertIsString(GenderEnum::MALE->value);
     }
 

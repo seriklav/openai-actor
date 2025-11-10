@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Actor;
 
+use App\Enums\Actor\GenderEnum;
 use App\Models\Actor;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -120,11 +121,11 @@ class ActorIndexTest extends TestCase
     public function test_filters_actors_by_gender(): void
     {
         $user = User::factory()->create();
-        Actor::factory()->create(['user_id' => $user->id, 'gender' => 'male']);
-        Actor::factory()->create(['user_id' => $user->id, 'gender' => 'male']);
-        Actor::factory()->create(['user_id' => $user->id, 'gender' => 'female']);
+        Actor::factory()->create(['user_id' => $user->id, 'gender' => GenderEnum::MALE->value]);
+        Actor::factory()->create(['user_id' => $user->id, 'gender' => GenderEnum::MALE->value]);
+        Actor::factory()->create(['user_id' => $user->id, 'gender' => GenderEnum::FEMALE->value]);
 
-        $response = $this->actingAs($user)->get(route('actors.index', ['gender' => 'male']));
+        $response = $this->actingAs($user)->get(route('actors.index', ['gender' => GenderEnum::MALE->value]));
 
         $response->assertOk();
         $actors = $response->viewData('actors');
@@ -194,25 +195,25 @@ class ActorIndexTest extends TestCase
         Actor::factory()->create([
             'user_id' => $user->id,
             'first_name' => $firstName,
-            'gender' => 'male',
+            'gender' => GenderEnum::MALE->value,
             'age' => 25,
         ]);
         Actor::factory()->create([
             'user_id' => $user->id,
             'first_name' => $firstName,
-            'gender' => 'male',
+            'gender' => GenderEnum::MALE->value,
             'age' => 30,
         ]);
         Actor::factory()->create([
             'user_id' => $user->id,
             'first_name' => fake()->firstName(),
-            'gender' => 'female',
+            'gender' => GenderEnum::FEMALE->value,
             'age' => 25,
         ]);
 
         $response = $this->actingAs($user)->get(route('actors.index', [
             'first_name' => $firstName,
-            'gender' => 'male',
+            'gender' => GenderEnum::MALE->value,
             'age' => 25,
         ]));
 

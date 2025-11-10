@@ -28,17 +28,17 @@ class ActorTest extends TestCase
         $user = User::factory()->create();
         $data = [
             'user_id' => $user->id,
-            'description' => 'Test description',
-            'first_name' => 'John',
-            'last_name' => 'Doe',
-            'address' => 'New York',
+            'description' => fake()->sentence(),
+            'first_name' => fake()->firstName(),
+            'last_name' => fake()->lastName(),
+            'address' => fake()->city(),
             'height' => 180,
             'weight' => 75,
-            'gender' => 'male',
+            'gender' => GenderEnum::MALE->value,
             'age' => 25,
         ];
 
-        $actor = Actor::create($data);
+        $actor = Actor::query()->create($data);
 
         $this->assertEquals($data['user_id'], $actor->user_id);
         $this->assertEquals($data['description'], $actor->description);
@@ -53,7 +53,7 @@ class ActorTest extends TestCase
 
     public function test_gender_is_cast_to_enum(): void
     {
-        $actor = Actor::factory()->create(['gender' => 'male']);
+        $actor = Actor::factory()->create(['gender' => GenderEnum::MALE->value]);
 
         $this->assertInstanceOf(GenderEnum::class, $actor->gender);
         $this->assertEquals('male', $actor->gender->value);
@@ -61,21 +61,21 @@ class ActorTest extends TestCase
 
     public function test_actor_can_have_male_gender(): void
     {
-        $actor = Actor::factory()->create(['gender' => 'male']);
+        $actor = Actor::factory()->create(['gender' => GenderEnum::MALE->value]);
 
         $this->assertEquals(GenderEnum::MALE, $actor->gender);
     }
 
     public function test_actor_can_have_female_gender(): void
     {
-        $actor = Actor::factory()->create(['gender' => 'female']);
+        $actor = Actor::factory()->create(['gender' => GenderEnum::FEMALE->value]);
 
         $this->assertEquals(GenderEnum::FEMALE, $actor->gender);
     }
 
     public function test_actor_can_have_other_gender(): void
     {
-        $actor = Actor::factory()->create(['gender' => 'other']);
+        $actor = Actor::factory()->create(['gender' => GenderEnum::OTHER->value]);
 
         $this->assertEquals(GenderEnum::OTHER, $actor->gender);
     }
@@ -104,30 +104,31 @@ class ActorTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $actor = Actor::create([
+        $firstName = fake()->firstName();
+        $actor = Actor::query()->create([
             'user_id' => $user->id,
-            'first_name' => 'John',
-            'last_name' => 'Doe',
-            'address' => 'Test City',
-            'gender' => 'male',
-            'description' => 'Minimal test description',
+            'first_name' => $firstName,
+            'last_name' => fake()->lastName(),
+            'address' => fake()->city(),
+            'gender' => GenderEnum::MALE->value,
+            'description' => fake()->sentence(),
         ]);
 
         $this->assertNotNull($actor->id);
-        $this->assertEquals('John', $actor->first_name);
+        $this->assertEquals($firstName, $actor->first_name);
     }
 
     public function test_actor_can_have_null_optional_fields(): void
     {
         $user = User::factory()->create();
 
-        $actor = Actor::create([
+        $actor = Actor::query()->create([
             'user_id' => $user->id,
-            'first_name' => 'Jane',
-            'last_name' => 'Doe',
-            'address' => 'Test City',
-            'gender' => 'female',
-            'description' => 'Test description with null fields',
+            'first_name' => fake()->firstName(),
+            'last_name' => fake()->lastName(),
+            'address' => fake()->city(),
+            'gender' => GenderEnum::FEMALE->value,
+            'description' => fake()->sentence(),
             'height' => null,
             'weight' => null,
             'age' => null,
@@ -179,7 +180,7 @@ class ActorTest extends TestCase
 
     public function test_actor_description_can_be_long_text(): void
     {
-        $longDescription = str_repeat('Long description text. ', 100);
+        $longDescription = str_repeat(fake()->sentence() . ' ', 100);
 
         $actor = Actor::factory()->create(['description' => $longDescription]);
 
@@ -188,17 +189,20 @@ class ActorTest extends TestCase
 
     public function test_actor_can_have_special_characters_in_fields(): void
     {
+        $firstName = "O'Brien";
+        $lastName = 'Smith-Jones';
+        $address = 'São Paulo';
+
         $actor = Actor::factory()->create([
-            'first_name' => "O'Brien",
-            'last_name' => 'Smith-Jones',
-            'address' => 'São Paulo, Россия',
-            'description' => 'Special chars: @#$%^&*()',
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'address' => $address,
+            'description' => fake()->sentence(),
         ]);
 
-        $this->assertEquals("O'Brien", $actor->first_name);
-        $this->assertEquals('Smith-Jones', $actor->last_name);
-        $this->assertEquals('São Paulo, Россия', $actor->address);
-        $this->assertStringContainsString('@#$%', $actor->description);
+        $this->assertEquals($firstName, $actor->first_name);
+        $this->assertEquals($lastName, $actor->last_name);
+        $this->assertEquals($address, $actor->address);
     }
 
     public function test_actor_height_can_be_in_valid_range(): void

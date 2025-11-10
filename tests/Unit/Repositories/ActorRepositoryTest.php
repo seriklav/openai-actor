@@ -3,6 +3,7 @@
 namespace Tests\Unit\Repositories;
 
 use App\Data\Actor\ActorData;
+use App\Enums\Actor\GenderEnum;
 use App\Models\Actor;
 use App\Models\User;
 use App\Repositories\Actor\ActorRepository;
@@ -33,7 +34,7 @@ class ActorRepositoryTest extends TestCase
             firstName: $firstName,
             lastName: $lastName,
             address: $address,
-            gender: 'male',
+            gender: GenderEnum::MALE->value,
             description: $description,
             height: 180,
             weight: 75,
@@ -70,7 +71,7 @@ class ActorRepositoryTest extends TestCase
             firstName: $firstName,
             lastName: $lastName,
             address: $address,
-            gender: 'female',
+            gender: GenderEnum::FEMALE->value,
             description: $description,
             height: 165,
             weight: 60,
@@ -81,7 +82,7 @@ class ActorRepositoryTest extends TestCase
         $secondActor = $this->repository->create($user, $actorData);
 
         $this->assertEquals($firstActor->id, $secondActor->id);
-        $this->assertEquals(1, Actor::count());
+        $this->assertEquals(1, Actor::query()->count());
     }
 
     public function test_checks_if_actors_exist_by_data(): void
@@ -186,11 +187,11 @@ class ActorRepositoryTest extends TestCase
     public function test_filters_actors_by_gender(): void
     {
         $user = User::factory()->create();
-        Actor::factory()->create(['user_id' => $user->id, 'gender' => 'male']);
-        Actor::factory()->create(['user_id' => $user->id, 'gender' => 'male']);
-        Actor::factory()->create(['user_id' => $user->id, 'gender' => 'female']);
+        Actor::factory()->create(['user_id' => $user->id, 'gender' => GenderEnum::MALE->value]);
+        Actor::factory()->create(['user_id' => $user->id, 'gender' => GenderEnum::MALE->value]);
+        Actor::factory()->create(['user_id' => $user->id, 'gender' => GenderEnum::FEMALE->value]);
 
-        $data = new ActorData(gender: 'male', perPage: 10);
+        $data = new ActorData(gender: GenderEnum::MALE->value, perPage: 10);
 
         $result = $this->repository->getActorsByData($data);
 
@@ -258,8 +259,8 @@ class ActorRepositoryTest extends TestCase
         $user = User::factory()->create();
         Actor::factory()->count(25)->create(['user_id' => $user->id]);
 
-        $dataPage1 = new ActorData(userId: $user->id, perPage: 10, page: 1);
-        $dataPage2 = new ActorData(userId: $user->id, perPage: 10, page: 2);
+        $dataPage1 = new ActorData(userId: $user->id, page: 1, perPage: 10);
+        $dataPage2 = new ActorData(userId: $user->id, page: 2, perPage: 10);
 
         $resultPage1 = $this->repository->getActorsByData($dataPage1);
         $resultPage2 = $this->repository->getActorsByData($dataPage2);
@@ -298,26 +299,26 @@ class ActorRepositoryTest extends TestCase
         Actor::factory()->create([
             'user_id' => $user->id,
             'first_name' => $firstName,
-            'gender' => 'male',
+            'gender' => GenderEnum::MALE->value,
             'age' => 25,
         ]);
         Actor::factory()->create([
             'user_id' => $user->id,
             'first_name' => $firstName,
-            'gender' => 'male',
+            'gender' => GenderEnum::MALE->value,
             'age' => 30,
         ]);
         Actor::factory()->create([
             'user_id' => $user->id,
             'first_name' => fake()->firstName(),
-            'gender' => 'female',
+            'gender' => GenderEnum::FEMALE->value,
             'age' => 25,
         ]);
 
         $data = new ActorData(
             userId: $user->id,
             firstName: $firstName,
-            gender: 'male',
+            gender: GenderEnum::MALE->value,
             age: 25,
             perPage: 10
         );

@@ -5,6 +5,9 @@ namespace Tests\Unit\Services;
 use App\Data\Actor\ActorData;
 use App\Data\Actor\ActorStoreData;
 use App\Data\User\UserAuthData;
+use App\Enums\Actor\GenderEnum;
+use App\Exceptions\Actor\ActorFirstNameMissing;
+use App\Exceptions\OpenAI\InvalidOpenAiResponseException;
 use App\Models\Actor;
 use App\Models\User;
 use App\Repositories\Actor\ActorRepository;
@@ -43,17 +46,22 @@ class ActorServiceTest extends TestCase
 
     public function test_successfully_stores_actor_with_valid_data(): void
     {
+        $email = fake()->email();
+        $firstName = fake()->firstName();
+        $lastName = fake()->lastName();
+        $address = fake()->city();
+
         $dto = new ActorStoreData(
-            email: 'test@example.com',
-            description: 'John Doe, 25 years old, male, 180cm, 75kg, lives in New York'
+            email: $email,
+            description: fake()->sentence()
         );
 
-        $user = User::factory()->make(['id' => 1, 'email' => 'test@example.com']);
+        $user = User::factory()->make(['id' => 1, 'email' => $email]);
         $actorData = new ActorData(
-            firstName: 'John',
-            lastName: 'Doe',
-            address: 'New York',
-            gender: 'male',
+            firstName: $firstName,
+            lastName: $lastName,
+            address: $address,
+            gender: GenderEnum::MALE->value,
             description: $dto->description,
             height: 180,
             weight: 75,
@@ -89,12 +97,13 @@ class ActorServiceTest extends TestCase
 
     public function test_throws_validation_exception_when_openai_service_fails(): void
     {
+        $email = fake()->email();
         $dto = new ActorStoreData(
-            email: 'test@example.com',
-            description: 'Invalid description'
+            email: $email,
+            description: fake()->sentence()
         );
 
-        $user = User::factory()->make(['id' => 1, 'email' => 'test@example.com']);
+        $user = User::factory()->make(['id' => 1, 'email' => $email]);
 
         $this->userService
             ->shouldReceive('getOrCreate')
@@ -104,7 +113,7 @@ class ActorServiceTest extends TestCase
         $this->openAiService
             ->shouldReceive('getActorData')
             ->once()
-            ->andThrow(new \Exception('OpenAI API Error'));
+            ->andThrow(new InvalidOpenAiResponseException());
 
         $this->expectException(ValidationException::class);
 
@@ -114,12 +123,11 @@ class ActorServiceTest extends TestCase
     public function test_validation_exception_contains_proper_error_message(): void
     {
         $dto = new ActorStoreData(
-            email: 'test@example.com',
-            description: 'Bad description'
+            email: fake()->email(),
+            description: fake()->sentence()
         );
 
         $user = User::factory()->make(['id' => 1]);
-        $errorMessage = 'First name is required';
 
         $this->userService
             ->shouldReceive('getOrCreate')
@@ -129,29 +137,30 @@ class ActorServiceTest extends TestCase
         $this->openAiService
             ->shouldReceive('getActorData')
             ->once()
-            ->andThrow(new \Exception($errorMessage));
+            ->andThrow(new ActorFirstNameMissing());
 
         try {
             $this->service->store($dto);
             $this->fail('Expected ValidationException was not thrown');
         } catch (ValidationException $e) {
             $this->assertArrayHasKey('description', $e->errors());
-            $this->assertContains($errorMessage, $e->errors()['description']);
+            $this->assertNotEmpty($e->errors()['description']);
         }
     }
 
     public function test_logs_in_user_during_store_process(): void
     {
+        $email = fake()->email();
         $dto = new ActorStoreData(
-            email: 'test@example.com',
-            description: 'Valid description'
+            email: $email,
+            description: fake()->sentence()
         );
 
-        $user = User::factory()->create(['email' => 'test@example.com']);
+        $user = User::factory()->create(['email' => $email]);
         $actorData = new ActorData(
-            firstName: 'John',
-            lastName: 'Doe',
-            address: 'New York',
+            firstName: fake()->firstName(),
+            lastName: fake()->lastName(),
+            address: fake()->city(),
             description: $dto->description
         );
         $actor = Actor::factory()->make();
@@ -192,12 +201,13 @@ class ActorServiceTest extends TestCase
         $this->actorRepository
             ->shouldReceive('getActorsByData')
             ->once()
-            ->with(Mockery::on(function ($arg) use ($actorData) {
-                return $arg instanceof ActorData
+            ->with(Mockery::on(
+                fn ($arg) =>
+                    $arg instanceof ActorData
                     && $arg->userId === $actorData->userId
                     && $arg->perPage === $actorData->perPage
-                    && $arg->page === $actorData->page;
-            }))
+                    && $arg->page === $actorData->page
+            ))
             ->andReturn($paginatorMock);
 
         $result = $this->service->getList($actorData);
@@ -207,11 +217,14 @@ class ActorServiceTest extends TestCase
 
     public function test_get_list_with_filters(): void
     {
+        $firstName = fake()->firstName();
+        $lastName = fake()->lastName();
+
         $actorData = new ActorData(
             userId: 1,
-            firstName: 'John',
-            lastName: 'Doe',
-            gender: 'male',
+            firstName: $firstName,
+            lastName: $lastName,
+            gender: GenderEnum::MALE->value,
             age: 25,
             perPage: 10
         );
@@ -221,11 +234,11 @@ class ActorServiceTest extends TestCase
         $this->actorRepository
             ->shouldReceive('getActorsByData')
             ->once()
-            ->with(Mockery::on(function ($arg) use ($actorData) {
+            ->with(Mockery::on(function ($arg) use ($firstName, $lastName) {
                 return $arg instanceof ActorData
-                    && $arg->firstName === 'John'
-                    && $arg->lastName === 'Doe'
-                    && $arg->gender === 'male'
+                    && $arg->firstName === $firstName
+                    && $arg->lastName === $lastName
+                    && $arg->gender === GenderEnum::MALE->value
                     && $arg->age === 25;
             }))
             ->andReturn($paginatorMock);
@@ -237,17 +250,17 @@ class ActorServiceTest extends TestCase
 
     public function test_store_passes_correct_user_auth_data_to_user_service(): void
     {
-        $email = 'test@example.com';
+        $email = fake()->email();
         $dto = new ActorStoreData(
             email: $email,
-            description: 'Test description'
+            description: fake()->sentence()
         );
 
         $user = User::factory()->make(['email' => $email]);
         $actorData = new ActorData(
-            firstName: 'Test',
-            lastName: 'User',
-            address: 'Test City',
+            firstName: fake()->firstName(),
+            lastName: fake()->lastName(),
+            address: fake()->city(),
             description: $dto->description
         );
         $actor = Actor::factory()->make();

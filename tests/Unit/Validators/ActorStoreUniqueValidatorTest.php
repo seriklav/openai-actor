@@ -2,7 +2,6 @@
 
 namespace Tests\Unit\Validators;
 
-use App\Data\User\UserAuthData;
 use App\Models\Actor;
 use App\Models\User;
 use App\Repositories\Actor\ActorRepository;
@@ -104,11 +103,11 @@ class ActorStoreUniqueValidatorTest extends TestCase
 
         $validator = Validator::make($request->all(), []);
 
-        $userCountBefore = User::count();
+        $userCountBefore = User::query()->count();
 
         $this->validator->validate($validator);
 
-        $this->assertEquals($userCountBefore, User::count());
+        $this->assertEquals($userCountBefore, User::query()->count());
         $this->assertFalse($validator->errors()->has('quantity'));
     }
 

@@ -23,7 +23,7 @@ class UserServiceTest extends TestCase
 
     public function test_creates_new_user_when_email_does_not_exist(): void
     {
-        $email = 'newuser@example.com';
+        $email = fake()->unique()->email();
         $dto = new UserAuthData(email: $email);
 
         $this->assertDatabaseMissing('users', ['email' => $email]);
@@ -39,7 +39,7 @@ class UserServiceTest extends TestCase
 
     public function test_returns_existing_user_when_email_exists(): void
     {
-        $email = 'existing@example.com';
+        $email = fake()->unique()->email();
         $existingUser = User::factory()->create([
             'email' => $email,
             'password' => bcrypt('original-password'),
@@ -53,12 +53,12 @@ class UserServiceTest extends TestCase
         $this->assertEquals($existingUser->id, $user->id);
         $this->assertEquals($existingUser->email, $user->email);
         $this->assertEquals($existingUser->password, $user->password);
-        $this->assertEquals(1, User::where('email', $email)->count());
+        $this->assertEquals(1, User::query()->where('email', $email)->count());
     }
 
     public function test_does_not_update_password_for_existing_user(): void
     {
-        $email = 'test@example.com';
+        $email = fake()->unique()->email();
         $originalPassword = bcrypt('original-password');
         $existingUser = User::factory()->create([
             'email' => $email,
@@ -75,8 +75,8 @@ class UserServiceTest extends TestCase
 
     public function test_generates_random_password_for_new_user(): void
     {
-        $email1 = 'user1@example.com';
-        $email2 = 'user2@example.com';
+        $email1 = fake()->unique()->email();
+        $email2 = fake()->unique()->email();
 
         $dto1 = new UserAuthData(email: $email1);
         $dto2 = new UserAuthData(email: $email2);
@@ -91,7 +91,7 @@ class UserServiceTest extends TestCase
 
     public function test_handles_email_case_sensitivity_correctly(): void
     {
-        $email = 'Test@Example.com';
+        $email = fake()->unique()->email();
         $existingUser = User::factory()->create(['email' => $email]);
 
         $dto = new UserAuthData(email: $email);
@@ -99,12 +99,12 @@ class UserServiceTest extends TestCase
         $user = $this->service->getOrCreate($dto);
 
         $this->assertEquals($existingUser->id, $user->id);
-        $this->assertEquals(1, User::where('email', $email)->count());
+        $this->assertEquals(1, User::query()->where('email', $email)->count());
     }
 
     public function test_stores_password_as_bcrypt_hash(): void
     {
-        $email = 'secure@example.com';
+        $email = fake()->unique()->email();
         $dto = new UserAuthData(email: $email);
 
         $user = $this->service->getOrCreate($dto);
@@ -115,7 +115,7 @@ class UserServiceTest extends TestCase
 
     public function test_persists_user_to_database(): void
     {
-        $email = 'persist@example.com';
+        $email = fake()->unique()->email();
         $dto = new UserAuthData(email: $email);
 
         $user = $this->service->getOrCreate($dto);
@@ -129,7 +129,7 @@ class UserServiceTest extends TestCase
 
     public function test_returns_same_user_on_multiple_calls_with_same_email(): void
     {
-        $email = 'multiple@example.com';
+        $email = fake()->unique()->email();
         $dto = new UserAuthData(email: $email);
 
         $user1 = $this->service->getOrCreate($dto);
@@ -138,15 +138,15 @@ class UserServiceTest extends TestCase
 
         $this->assertEquals($user1->id, $user2->id);
         $this->assertEquals($user2->id, $user3->id);
-        $this->assertEquals(1, User::where('email', $email)->count());
+        $this->assertEquals(1, User::query()->where('email', $email)->count());
     }
 
     public function test_handles_multiple_users_with_different_emails(): void
     {
         $emails = [
-            'user1@example.com',
-            'user2@example.com',
-            'user3@example.com',
+            fake()->unique()->email(),
+            fake()->unique()->email(),
+            fake()->unique()->email(),
         ];
 
         $users = [];
@@ -155,7 +155,7 @@ class UserServiceTest extends TestCase
         }
 
         $this->assertCount(3, $users);
-        $this->assertEquals(3, User::count());
+        $this->assertEquals(3, User::query()->count());
         $uniqueIds = array_unique(array_map(fn($u) => $u->id, $users));
         $this->assertCount(3, $uniqueIds);
     }
